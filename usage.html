@@ -1,0 +1,366 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Usage &#8212; Dynamallow 0.0.3 documentation</title>
+    
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.0.3',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="Dynamallow 0.0.3 documentation" href="index.html" />
+    <link rel="next" title="Developing" href="developing.html" />
+    <link rel="prev" title="DynamoDB + Marshmallow" href="index.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="usage">
+<h1>Usage<a class="headerlink" href="#usage" title="Permalink to this headline">¶</a></h1>
+<p>Using Dynamallow is straight forward.  Simply define your models with some specific meta data to represent the DynamoDB
+Table structure as well as the document schema.  You can then use class level methods to query for and get items,
+represented as instances of the class, as well as class level methods to interact with specific documents in the table.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Not all functionality is covered in this documentation yet.  See <a class="reference external" href="https://github.com/borgstrom/dynamallow/tree/master/tests">the tests</a> for all &#8220;supported&#8221; functionality
+(like: batch puts, unique puts, etc).</p>
+</div>
+<div class="section" id="setting-up-boto3">
+<h2>Setting up Boto3<a class="headerlink" href="#setting-up-boto3" title="Permalink to this headline">¶</a></h2>
+<p>Make sure you have <a class="reference external" href="https://boto3.readthedocs.io/en/latest/guide/quickstart.html#configuration">configured boto3</a> and can access DynamoDB from the Python console.</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">boto3</span>
+<span class="n">dynamodb</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">resource</span><span class="p">(</span><span class="s1">&#39;dynamodb&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="s1">&#39;us-east-1&#39;</span><span class="p">)</span>
+<span class="nb">list</span><span class="p">(</span><span class="n">dynamodb</span><span class="o">.</span><span class="n">tables</span><span class="o">.</span><span class="n">all</span><span class="p">())</span>  <span class="c1"># --&gt; [&#39;table1&#39;, &#39;table2&#39;, &#39;etc...&#39;]</span>
+</pre></div>
+</div>
+<div class="section" id="using-dynamo-local">
+<h3>Using Dynamo Local<a class="headerlink" href="#using-dynamo-local" title="Permalink to this headline">¶</a></h3>
+<p>If you&#8217;re using <a class="reference external" href="http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/DynamoDBLocal.html">Dynamo Local</a> for development you will need to configure Dynamallow appropriately by manually calling
+<code class="docutils literal"><span class="pre">get_resource</span></code> on any model&#8217;s <code class="docutils literal"><span class="pre">Table</span></code> object, which takes the same parameters as <code class="docutils literal"><span class="pre">boto3.resource</span></code>.  The
+<code class="docutils literal"><span class="pre">dynamodb</span></code> boto resource is shared globally by all models, so it only needs to be done once.  For example:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">MyModel</span><span class="o">.</span><span class="n">Table</span><span class="o">.</span><span class="n">get_resource</span><span class="p">(</span>
+    <span class="n">aws_access_key_id</span><span class="o">=</span><span class="s2">&quot;anything&quot;</span><span class="p">,</span>
+    <span class="n">aws_secret_access_key</span><span class="o">=</span><span class="s2">&quot;anything&quot;</span><span class="p">,</span>
+    <span class="n">region_name</span><span class="o">=</span><span class="s2">&quot;us-west-2&quot;</span><span class="p">,</span>
+    <span class="n">endpoint_url</span><span class="o">=</span><span class="s2">&quot;http://localhost:8000&quot;</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="defining-your-models-tables-schemas">
+<h2>Defining your Models &#8211; Tables &amp; Schemas<a class="headerlink" href="#defining-your-models-tables-schemas" title="Permalink to this headline">¶</a></h2>
+<p>Models represent tables in DynamoDB and define the characteristics of the Dynamo service as well as the Marshmallow
+schema that is used for validating and marshalling your data.</p>
+<dl class="class">
+<dt>
+<em class="property">class </em><code class="descclassname">dynamallow.model.</code><code class="descname">MarshModel</code><span class="sig-paren">(</span><em>**raw</em><span class="sig-paren">)</span></dt>
+<dd><p><code class="docutils literal"><span class="pre">MarshModel</span></code> is the base class all of your models will extend from.  This model definition encapsulates the
+parameters used to create and manage the table as well as the schema for validating and marshalling data into object
+attributes.  It will also hold any custom business logic you need for your objects.</p>
+<p>Your class must define two inner classes that specify the Dynamo Table options and the Marshmallow Schema,
+respectively.</p>
+<p>The Dynamo Table options are defined in a class named <code class="docutils literal"><span class="pre">Table</span></code>.  See the <a class="reference internal" href="api.html#module-dynamallow.table" title="dynamallow.table"><code class="xref py py-mod docutils literal"><span class="pre">dynamallow.table</span></code></a> module for
+more information.</p>
+<p>The document schema is defined in a class named <code class="docutils literal"><span class="pre">Schema</span></code>, which should be filled out exactly as you would fill
+out any other <a class="reference external" href="https://marshmallow.readthedocs.io/en/latest/api_reference.html#marshmallow.Schema" title="(in marshmallow v2.10.2)"><code class="xref py py-class docutils literal"><span class="pre">Schema</span></code></a> or <code class="xref py py-class docutils literal"><span class="pre">Model</span></code>.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p>You do not need to have Schema extend from the marshmallow <a class="reference external" href="https://marshmallow.readthedocs.io/en/latest/api_reference.html#marshmallow.Schema" title="(in marshmallow v2.10.2)"><code class="xref py py-class docutils literal"><span class="pre">Schema</span></code></a> class as we
+automatically do that for you, to make model definition more concise.</p>
+<p>The same is true for the Table class.  We will automatically transform it so that it extends from the
+<a class="reference internal" href="api.html#dynamallow.table.DynamoTable3" title="dynamallow.table.DynamoTable3"><code class="xref py py-class docutils literal"><span class="pre">dynamallow.table.DynamoTable3</span></code></a>.</p>
+<p class="last">In either case you&#8217;re free to define them as extending from the actual base classes if you prefer to be explicit.</p>
+</div>
+<p>For example:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="c1"># Marshmallow example</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+<span class="kn">from</span> <span class="nn">dynamallow</span> <span class="kn">import</span> <span class="n">MarshModel</span>
+
+<span class="kn">from</span> <span class="nn">marshmallow</span> <span class="kn">import</span> <span class="n">validate</span>
+<span class="kn">from</span> <span class="nn">marshmallow</span> <span class="kn">import</span> <span class="n">fields</span>
+
+<span class="k">class</span> <span class="nc">Thing</span><span class="p">(</span><span class="n">MarshModel</span><span class="p">):</span>
+    <span class="k">class</span> <span class="nc">Table</span><span class="p">:</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;{env}-things&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">env</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ENVIRONMENT&#39;</span><span class="p">,</span> <span class="s1">&#39;dev&#39;</span><span class="p">))</span>
+        <span class="n">hash_key</span> <span class="o">=</span> <span class="s1">&#39;id&#39;</span>
+        <span class="n">read</span> <span class="o">=</span> <span class="mi">5</span>
+        <span class="n">write</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="k">class</span> <span class="nc">Schema</span><span class="p">:</span>
+        <span class="nb">id</span> <span class="o">=</span> <span class="n">fields</span><span class="o">.</span><span class="n">String</span><span class="p">(</span><span class="n">required</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">fields</span><span class="o">.</span><span class="n">String</span><span class="p">()</span>
+        <span class="n">color</span> <span class="o">=</span> <span class="n">fields</span><span class="o">.</span><span class="n">String</span><span class="p">(</span><span class="n">validate</span><span class="o">=</span><span class="n">validate</span><span class="o">.</span><span class="n">OneOf</span><span class="p">((</span><span class="s1">&#39;purple&#39;</span><span class="p">,</span> <span class="s1">&#39;red&#39;</span><span class="p">,</span> <span class="s1">&#39;yellow&#39;</span><span class="p">)))</span>
+        <span class="n">compound</span> <span class="o">=</span> <span class="n">fields</span><span class="o">.</span><span class="n">Dict</span><span class="p">(</span><span class="n">required</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">say_hello</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">print</span><span class="p">(</span><span class="s2">&quot;Hello.  {name} here.  My ID is {id} and I&#39;m colored {color}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="nb">id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="n">color</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">color</span>
+        <span class="p">))</span>
+</pre></div>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="c1"># Schematics example</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+<span class="kn">from</span> <span class="nn">dynamallow</span> <span class="kn">import</span> <span class="n">MarshModel</span>
+
+<span class="kn">from</span> <span class="nn">schematics</span> <span class="kn">import</span> <span class="n">types</span>
+
+<span class="k">class</span> <span class="nc">Thing</span><span class="p">(</span><span class="n">MarshModel</span><span class="p">):</span>
+    <span class="k">class</span> <span class="nc">Table</span><span class="p">:</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;{env}-things&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">env</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ENVIRONMENT&#39;</span><span class="p">,</span> <span class="s1">&#39;dev&#39;</span><span class="p">))</span>
+        <span class="n">hash_key</span> <span class="o">=</span> <span class="s1">&#39;id&#39;</span>
+        <span class="n">read</span> <span class="o">=</span> <span class="mi">5</span>
+        <span class="n">write</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="k">class</span> <span class="nc">Schema</span><span class="p">:</span>
+        <span class="nb">id</span> <span class="o">=</span> <span class="n">types</span><span class="o">.</span><span class="n">StringType</span><span class="p">(</span><span class="n">required</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">types</span><span class="o">.</span><span class="n">StringType</span><span class="p">()</span>
+        <span class="n">color</span> <span class="o">=</span> <span class="n">types</span><span class="o">.</span><span class="n">StringType</span><span class="p">()</span>
+        <span class="n">compound</span> <span class="o">=</span> <span class="n">types</span><span class="o">.</span><span class="n">DictType</span><span class="p">(</span><span class="n">types</span><span class="o">.</span><span class="n">IntType</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">say_hello</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">print</span><span class="p">(</span><span class="s2">&quot;Hello.  {name} here.  My ID is {id} and I&#39;m colored {color}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="nb">id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="n">color</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">color</span>
+        <span class="p">))</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</div>
+<div class="section" id="table-data-model">
+<h2>Table Data Model<a class="headerlink" href="#table-data-model" title="Permalink to this headline">¶</a></h2>
+<p>The inner <code class="docutils literal"><span class="pre">Table</span></code> class on <code class="docutils literal"><span class="pre">MarshModels</span></code> becomes an instance of a DynamoTable3.</p>
+<p>The attributes you define on your inner <code class="docutils literal"><span class="pre">Table</span></code> class map to underlying boto data structures.  This mapping is
+expressed through the following data model:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="11%" />
+<col width="10%" />
+<col width="5%" />
+<col width="75%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Attribute</th>
+<th class="head">Required</th>
+<th class="head">Type</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>name</td>
+<td>True</td>
+<td>str</td>
+<td>The name of the table, as stored in Dynamo.</td>
+</tr>
+<tr class="row-odd"><td>hash_key</td>
+<td>True</td>
+<td>str</td>
+<td>The name of the field to use as the hash key.
+It must exist in the schema.</td>
+</tr>
+<tr class="row-even"><td>range_key</td>
+<td>False</td>
+<td>str</td>
+<td>The name of the field to use as the range_key, if one is used.
+It must exist in the schema.</td>
+</tr>
+<tr class="row-odd"><td>read</td>
+<td>True</td>
+<td>int</td>
+<td>The provisioned read throughput.</td>
+</tr>
+<tr class="row-even"><td>write</td>
+<td>True</td>
+<td>int</td>
+<td>The provisioned write throughput.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="creating-new-documents">
+<h2>Creating new documents<a class="headerlink" href="#creating-new-documents" title="Permalink to this headline">¶</a></h2>
+<p>Using objects:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">thing</span> <span class="o">=</span> <span class="n">Thing</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">&quot;thing1&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Thing One&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;purple&quot;</span><span class="p">)</span>
+<span class="n">thing</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+</pre></div>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">thing</span> <span class="o">=</span> <span class="n">Thing</span><span class="p">()</span>
+<span class="n">thing</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="s2">&quot;thing1&quot;</span>
+<span class="n">thing</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;Thing One&quot;</span>
+<span class="n">thing</span><span class="o">.</span><span class="n">color</span> <span class="o">=</span> <span class="s2">&quot;purple&quot;</span>
+<span class="n">thing</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Using raw documents:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">Thing</span><span class="o">.</span><span class="n">put</span><span class="p">({</span>
+    <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="s2">&quot;thing1&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Thing One&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;color&quot;</span><span class="p">:</span> <span class="s2">&quot;purple&quot;</span>
+<span class="p">})</span>
+</pre></div>
+</div>
+<p>In all cases, the attributes go through validation against the Schema.</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">thing</span> <span class="o">=</span> <span class="n">Thing</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">&quot;thing1&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Thing One&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;orange&quot;</span><span class="p">)</span>
+
+<span class="c1"># the call to save will result in a ValidationError because orange is an invalid choice.</span>
+<span class="n">thing</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Remember, if you have a <code class="docutils literal"><span class="pre">String</span></code> field it will use <code class="docutils literal"><span class="pre">unicode</span></code> (py2) or <code class="docutils literal"><span class="pre">str</span></code> (py3) on any value assigned to it,
+which means that if you assign a <code class="docutils literal"><span class="pre">list</span></code>, <code class="docutils literal"><span class="pre">dict</span></code>, <code class="docutils literal"><span class="pre">int</span></code>, etc then the validation will succeed and what will be
+stored is the representative string value.</p>
+</div>
+</div>
+<div class="section" id="fetching-existing-documents">
+<h2>Fetching existing documents<a class="headerlink" href="#fetching-existing-documents" title="Permalink to this headline">¶</a></h2>
+<p>To fetch an existing document you use the <code class="docutils literal"><span class="pre">.get</span></code> class method on your models:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">thing1</span> <span class="o">=</span> <span class="n">Thing</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">&quot;thing1&quot;</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">thing1</span><span class="o">.</span><span class="n">color</span> <span class="o">==</span> <span class="s1">&#39;purple&#39;</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="index.html">
+    <img class="logo" src="_static/dynamallow-logo.png" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+<p class="blurb">DynamoDB + Marshmallow — Two awesome things, better together!<br /></p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=borgstrom&repo=dynamallow&type=star&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+    
+
+<p>
+<a href="https://travis-ci.org/borgstrom/dynamallow">
+    <img
+        alt="https://secure.travis-ci.org/borgstrom/dynamallow.svg?branch=master"
+        src="https://secure.travis-ci.org/borgstrom/dynamallow.svg?branch=master"
+    />
+</a>
+</p>
+
+
+
+
+    
+
+<p>
+<a href="https://codecov.io/github/borgstrom/dynamallow">
+    <img
+    alt="https://codecov.io/github/borgstrom/dynamallow/coverage.svg?branch=master"
+    src="https://codecov.io/github/borgstrom/dynamallow/coverage.svg?branch=master"
+    />
+</a>
+</p>
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Usage</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#setting-up-boto3">Setting up Boto3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#defining-your-models-tables-schemas">Defining your Models &#8211; Tables &amp; Schemas</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#table-data-model">Table Data Model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#creating-new-documents">Creating new documents</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#fetching-existing-documents">Fetching existing documents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="developing.html">Developing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">Dynamallow API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="motivation.html">Motivation for creating Dynamallow</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="index.html" title="previous chapter">DynamoDB + Marshmallow</a></li>
+      <li>Next: <a href="developing.html" title="next chapter">Developing</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy; 2016 <a href="http://borgstrom.ca">Evan Borgstrom</a>.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.6</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
+      
+    </div>
+
+    
+    <a href="https://github.com/borgstrom/dynamallow" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>

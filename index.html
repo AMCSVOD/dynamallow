@@ -1,0 +1,241 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>DynamoDB + Marshmallow &#8212; Dynamallow 0.0.3 documentation</title>
+    
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.0.3',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="Dynamallow 0.0.3 documentation" href="#" />
+    <link rel="next" title="Usage" href="usage.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="dynamodb-marshmallow">
+<h1>DynamoDB + Marshmallow<a class="headerlink" href="#dynamodb-marshmallow" title="Permalink to this headline">¶</a></h1>
+<p>Two awesome things, better together!</p>
+<p>Dynamallow is a Python library that provides integration between the <a class="reference external" href="http://boto3.readthedocs.io/en/latest/guide/dynamodb.html">Boto v3 DynamoDB API</a> and <a class="reference external" href="https://marshmallow.readthedocs.io/en/latest/">Marshmallow</a>.
+Together they provide a simple, ORM inspired, interface to the <a class="reference external" href="http://aws.amazon.com/dynamodb/">DynamoDB</a> service with a fully defined, strongly typed
+schema.</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">dynamallow</span> <span class="kn">import</span> <span class="n">MarshModel</span>
+<span class="kn">from</span> <span class="nn">marshmallow</span> <span class="kn">import</span> <span class="n">fields</span>
+
+<span class="k">class</span> <span class="nc">Book</span><span class="p">(</span><span class="n">MarshModel</span><span class="p">):</span>
+    <span class="k">class</span> <span class="nc">Table</span><span class="p">:</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;prod-books&#39;</span>
+        <span class="n">hash_key</span> <span class="o">=</span> <span class="s1">&#39;isbn&#39;</span>
+        <span class="n">read</span> <span class="o">=</span> <span class="mi">25</span>
+        <span class="n">write</span> <span class="o">=</span> <span class="mi">5</span>
+
+    <span class="k">class</span> <span class="nc">Schema</span><span class="p">:</span>
+        <span class="n">isbn</span> <span class="o">=</span> <span class="n">fields</span><span class="o">.</span><span class="n">String</span><span class="p">(</span><span class="n">validate</span><span class="o">=</span><span class="n">validate_isbn</span><span class="p">)</span>
+        <span class="n">title</span> <span class="o">=</span> <span class="n">fields</span><span class="o">.</span><span class="n">String</span><span class="p">()</span>
+        <span class="n">author</span> <span class="o">=</span> <span class="n">fields</span><span class="o">.</span><span class="n">String</span><span class="p">()</span>
+        <span class="n">publisher</span> <span class="o">=</span> <span class="n">fields</span><span class="o">.</span><span class="n">String</span><span class="p">()</span>
+        <span class="n">year</span> <span class="o">=</span> <span class="n">fields</span><span class="o">.</span><span class="n">Number</span><span class="p">()</span>
+
+
+<span class="c1"># Store new documents directly from dictionaries</span>
+<span class="n">Book</span><span class="o">.</span><span class="n">put</span><span class="p">({</span>
+    <span class="s2">&quot;isbn&quot;</span><span class="p">:</span> <span class="s2">&quot;12345678910&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Foo&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;author&quot;</span><span class="p">:</span> <span class="s2">&quot;Mr. Bar&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;publisher&quot;</span><span class="p">:</span> <span class="s2">&quot;Publishorama&quot;</span>
+<span class="p">})</span>
+
+<span class="c1"># Work with the classes as objects</span>
+<span class="c1"># You can pass attributes from the schema to the constructor</span>
+<span class="n">foo</span> <span class="o">=</span> <span class="n">Book</span><span class="p">(</span><span class="n">isbn</span><span class="o">=</span><span class="s2">&quot;12345678910&quot;</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Foo&quot;</span><span class="p">,</span> <span class="n">author</span><span class="o">=</span><span class="s2">&quot;Mr. Bar&quot;</span><span class="p">,</span>
+           <span class="n">publisher</span><span class="o">=</span><span class="s2">&quot;Publishorama&quot;</span><span class="p">)</span>
+<span class="n">foo</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+
+<span class="c1"># Or assign attributes</span>
+<span class="n">foo</span> <span class="o">=</span> <span class="n">Book</span><span class="p">()</span>
+<span class="n">foo</span><span class="o">.</span><span class="n">isbn</span> <span class="o">=</span> <span class="s2">&quot;12345678910&quot;</span>
+<span class="n">foo</span><span class="o">.</span><span class="n">title</span> <span class="o">=</span> <span class="s2">&quot;Foo&quot;</span>
+<span class="n">foo</span><span class="o">.</span><span class="n">author</span> <span class="o">=</span> <span class="s2">&quot;Mr. Bar&quot;</span>
+<span class="n">foo</span><span class="o">.</span><span class="n">publisher</span> <span class="o">=</span> <span class="s2">&quot;Publishorama&quot;</span>
+<span class="n">foo</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+
+<span class="c1"># In all cases they go through Schema validation, calls to</span>
+<span class="c1"># .put or .save can result in ValidationError being raised.</span>
+
+<span class="c1"># You can then fetch, query and scan your tables.</span>
+
+<span class="c1"># Get on the hash key, and/or range key</span>
+<span class="n">Book</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">isbn</span><span class="o">=</span><span class="s2">&quot;12345678910&quot;</span><span class="p">)</span>
+
+<span class="c1"># Query based on the keys</span>
+<span class="n">Book</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">isbn__begins_with</span><span class="o">=</span><span class="s2">&quot;12345&quot;</span><span class="p">)</span>
+
+<span class="c1"># Scan based on attributes</span>
+<span class="n">Book</span><span class="o">.</span><span class="n">scan</span><span class="p">(</span><span class="n">author</span><span class="o">=</span><span class="s2">&quot;Mr. Bar&quot;</span><span class="p">)</span>
+<span class="n">Book</span><span class="o">.</span><span class="n">scan</span><span class="p">(</span><span class="n">author__ne</span><span class="o">=</span><span class="s2">&quot;Mr. Bar&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="section" id="contents">
+<h2>Contents<a class="headerlink" href="#contents" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#setting-up-boto3">Setting up Boto3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#defining-your-models-tables-schemas">Defining your Models &#8211; Tables &amp; Schemas</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#table-data-model">Table Data Model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#creating-new-documents">Creating new documents</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#fetching-existing-documents">Fetching existing documents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="developing.html">Developing</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="developing.html#running-the-tests">Running the tests</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">Dynamallow API</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api.html#module-dynamallow"><code class="docutils literal"><span class="pre">dynamallow</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#module-dynamallow.model"><code class="docutils literal"><span class="pre">dynamallow.model</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#module-dynamallow.table"><code class="docutils literal"><span class="pre">dynamallow.table</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="motivation.html">Motivation for creating Dynamallow</a></li>
+</ul>
+</div>
+</div>
+<div class="section" id="indices-and-tables">
+<h2>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></li>
+<li><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></li>
+<li><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="#">
+    <img class="logo" src="_static/dynamallow-logo.png" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+<p class="blurb">DynamoDB + Marshmallow — Two awesome things, better together!<br /></p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=borgstrom&repo=dynamallow&type=star&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+    
+
+<p>
+<a href="https://travis-ci.org/borgstrom/dynamallow">
+    <img
+        alt="https://secure.travis-ci.org/borgstrom/dynamallow.svg?branch=master"
+        src="https://secure.travis-ci.org/borgstrom/dynamallow.svg?branch=master"
+    />
+</a>
+</p>
+
+
+
+
+    
+
+<p>
+<a href="https://codecov.io/github/borgstrom/dynamallow">
+    <img
+    alt="https://codecov.io/github/borgstrom/dynamallow/coverage.svg?branch=master"
+    src="https://codecov.io/github/borgstrom/dynamallow/coverage.svg?branch=master"
+    />
+</a>
+</p>
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="developing.html">Developing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">Dynamallow API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="motivation.html">Motivation for creating Dynamallow</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="#">Documentation overview</a><ul>
+      <li>Next: <a href="usage.html" title="next chapter">Usage</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy; 2016 <a href="http://borgstrom.ca">Evan Borgstrom</a>.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.6</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
+      
+    </div>
+
+    
+    <a href="https://github.com/borgstrom/dynamallow" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>
